@@ -1,0 +1,11 @@
+Date,Title,Amount,Type,Category,PaymentMethod,Description
+2026-11-01,Monthly Salary,75000,income,Salary,Bank Transfer,Direct employer payroll deposit
+2026-11-02,Apartment Rent,18000,expense,Housing,Net Banking,Monthly apartment rent
+2026-11-03,Supermarket Groceries,3450,expense,Groceries,UPI,Weekly grocery run and staples
+2026-11-04,Metro Rail Pass,1200,expense,Transport,Metro Card,Monthly commute recharge
+2026-11-05,Electricity Bill,2150,expense,Utilities,UPI,State electricity board bill
+2026-11-06,Weekend Dinner with Friends,1850,expense,Food & Dining,Credit Card,Restaurant dinner
+2026-11-07,Freelance Consulting,12500,income,Freelance,UPI,Web development milestone payment
+2026-11-08,Cloud Server & Domain,999,expense,Technology,Debit Card,Monthly development infrastructure
+2026-11-09,Medical & Pharmacy,650,expense,Healthcare,UPI,Prescription medication
+2026-11-10,Online Course Subscription,1499,expense,Education,Credit Card,Advanced TypeScript course

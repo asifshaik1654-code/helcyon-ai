@@ -1,0 +1,24 @@
+{
+  "name": "helcyon-ai-root",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Helcyon AI — Financial Intelligence (Full-Stack Monorepo)",
+  "scripts": {
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build": "npm run build:client && npm run build:server"
+  },
+  "keywords": [
+    "fintech",
+    "financial-intelligence",
+    "gemini-ai",
+    "react",
+    "nodejs",
+    "supabase",
+    "tailwind"
+  ],
+  "author": "Shaik Asif",
+  "license": "MIT"
+}
