@@ -172,3 +172,68 @@ export interface SimulationParams {
   additionalSavings: number;
 }
 
+// ── API Response Types ─────────────────────────────────────────────────────────
+
+/**
+ * Generic wrapper for paginated list endpoints.
+ * T is the item type, e.g. Transaction.
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+/**
+ * Query params accepted by GET /api/transactions
+ */
+export interface TransactionFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: TransactionType;
+  category?: TransactionCategory;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+  sortBy?: 'transactionDate' | 'amount' | 'title' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * Aggregated totals returned by GET /api/transactions/summary
+ */
+export interface TransactionSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  availableBalance: number;
+  transactionCount: number;
+  incomeCount: number;
+  expenseCount: number;
+  byCategory: {
+    category: TransactionCategory;
+    total: number;
+    count: number;
+    percentage: number;
+  }[];
+}
+
+/**
+ * Result returned after a CSV batch import
+ */
+export interface ImportResult {
+  imported: number;
+  skipped: number;
+  errors: number;
+  total: number;
+  details?: {
+    importedItems?: Transaction[];
+    skippedReasons?: string[];
+  };
+}
+

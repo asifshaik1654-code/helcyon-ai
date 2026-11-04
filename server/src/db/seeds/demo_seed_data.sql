@@ -94,3 +94,4 @@ BEGIN
     (demo_user_id, 'Subscription Detected', 'Helcyon detected AWS Cloud Hosting (₹1,250/mo). Click to review.', 'recurring', TRUE);
 
 END $$;
+

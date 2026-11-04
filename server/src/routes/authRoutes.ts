@@ -10,3 +10,4 @@ router.post('/logout', logout);
 router.get('/me', requireAuth, getMe);
 
 export default router;
+

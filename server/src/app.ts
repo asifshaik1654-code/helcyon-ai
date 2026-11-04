@@ -6,6 +6,7 @@ import { ENV } from './config/env.js';
 import { sendSuccess, sendError } from './utils/response.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 
 export const app = express();
 
@@ -37,6 +38,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // Mounted Application Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Centralized error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

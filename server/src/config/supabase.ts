@@ -25,3 +25,4 @@ export const supabase = createClient(
 );
 
 export const isSupabaseLive = isConfigured;
+

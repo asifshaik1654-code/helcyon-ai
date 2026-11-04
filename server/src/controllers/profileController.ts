@@ -85,3 +85,4 @@ export async function updateProfile(req: Request, res: Response) {
     return sendError(res, 'Failed to update profile', 500, 'SERVER_ERROR');
   }
 }
+

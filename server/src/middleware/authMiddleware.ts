@@ -60,3 +60,4 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return sendError(res, 'Authentication verification failure', 500, 'AUTH_ERROR');
   }
 }
+

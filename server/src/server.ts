@@ -1,7 +1,7 @@
 import { app } from './app.js';
 import { ENV } from './config/env.js';
 
-const server = app.listen(ENV.PORT, () => {
+const server = app.listen(ENV.PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(`  HELCYON AI — Financial Intelligence Backend API`);
   console.log(`  Status: Running on http://localhost:${ENV.PORT}`);

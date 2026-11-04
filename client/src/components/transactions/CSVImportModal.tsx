@@ -4,16 +4,25 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { formatCurrency } from '../../utils/formatters';
-import { Transaction, TransactionType, PaymentMethod, ExpenseCategory } from '../../types';
+import { Transaction, TransactionType, TransactionCategory, PaymentMethod } from '../../types';
+
+// Rows that are handed off to the parent after user confirmation
+type ImportRow = Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 import { Upload, Download, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+
+// Rows that are handed off to the parent after user confirmation
+
 
 interface CSVImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportSuccess: (importedCount: number) => void;
-}
-
-interface ParsedRow {
+  /**
+   * Called with the array of valid, confirmed rows so the parent page can
+   * send them to the API.  The parent is responsible for the actual network
+   * call so this modal stays decoupled from the service layer.
+   */
+  onImportSuccess: (rows: ImportRow[]) => void;
+}interface ParsedRow {
   Date: string;
   Title: string;
   Amount: string | number;
@@ -28,7 +37,7 @@ interface ValidatedRow {
   title: string;
   amount: number;
   type: TransactionType;
-  category: string;
+  category: TransactionCategory;
   paymentMethod: PaymentMethod;
   description: string;
   isDuplicate?: boolean;
@@ -90,7 +99,7 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
             title: row.Title || `Transaction #${idx + 1}`,
             amount: isValidAmount ? rawAmount : 0,
             type,
-            category: row.Category || (type === 'income' ? 'Salary' : 'Other'),
+            category: (row.Category || (type === 'income' ? 'Salary' : 'Other')) as TransactionCategory,
             paymentMethod: (row.PaymentMethod as PaymentMethod) || 'UPI',
             description: row.Description || '',
             isValid: isValidAmount && !!row.Title,
@@ -111,11 +120,23 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
 
   const handleConfirmImport = () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      onImportSuccess(validCount);
-      onClose();
-    }, 600);
+    // Build the rows in the shape the parent / API expects
+    const validRows: ImportRow[] = previewRows
+      .filter((r) => r.isValid)
+      .map((r) => ({
+        title: r.title,
+        amount: r.amount,
+        transactionType: r.type,
+        category: r.category,
+        transactionDate: r.date,
+        paymentMethod: r.paymentMethod,
+        description: r.description || undefined,
+        isRecurring: false,
+      }));
+
+    // Hand off to the parent — it handles the API call
+    onImportSuccess(validRows);
+    setIsProcessing(false);
   };
 
   return (
@@ -208,9 +229,8 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({
                         </Badge>
                       </td>
                       <td
-                        className={`p-2.5 text-right font-mono font-medium ${
-                          row.type === 'income' ? 'text-emerald-400' : 'text-slate-200'
-                        }`}
+                        className={`p-2.5 text-right font-mono font-medium ${row.type === 'income' ? 'text-emerald-400' : 'text-slate-200'
+                          }`}
                       >
                         {formatCurrency(row.amount)}
                       </td>

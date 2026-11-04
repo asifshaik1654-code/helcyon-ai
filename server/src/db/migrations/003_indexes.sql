@@ -41,3 +41,4 @@ WHERE is_read = FALSE;
 CREATE INDEX IF NOT EXISTS idx_insights_user_unread 
 ON public.financial_insights (user_id, is_read) 
 WHERE is_read = FALSE;
+

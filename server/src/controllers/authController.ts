@@ -165,3 +165,4 @@ export async function getMe(req: Request, res: Response) {
     'Current authenticated session retrieved'
   );
 }
+
