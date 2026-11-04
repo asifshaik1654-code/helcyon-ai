@@ -125,3 +125,4 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({ isDemoMode }) => {
     </div>
   );
 };
+

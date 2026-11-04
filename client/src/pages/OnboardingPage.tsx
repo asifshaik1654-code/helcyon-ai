@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Check, Sparkles, ArrowRight, IndianRupee, DollarSign, Euro } from 'lucide-react';
+import { ShieldCheck, Check, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useAuth } from '../context/AuthContext';
 
 const GOAL_OPTIONS = [
   'Build Emergency Safety Fund',
@@ -27,6 +28,7 @@ const CATEGORY_OPTIONS = [
 
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { updateProfile } = useAuth();
   const [step, setStep] = useState(1);
   const [currency, setCurrency] = useState('INR');
   const [monthlyIncome, setMonthlyIncome] = useState('85000');
@@ -54,7 +56,13 @@ export const OnboardingPage: React.FC = () => {
     );
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    await updateProfile({
+      preferredCurrency: currency,
+      monthlyIncome: parseFloat(monthlyIncome) || 0,
+      onboardingCompleted: true,
+      financialGoals: selectedGoals,
+    });
     navigate('/dashboard');
   };
 

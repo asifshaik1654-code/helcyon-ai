@@ -3,26 +3,34 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useAuth } from '../context/AuthContext';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !email || !password) {
       setError('Please fill in all required fields.');
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+
+    const result = await signUp(email, password, fullName);
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+    } else {
       navigate('/onboarding');
-    }, 600);
+    }
   };
 
   return (

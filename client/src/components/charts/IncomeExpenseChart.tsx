@@ -80,3 +80,4 @@ export const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     </div>
   );
 };
+

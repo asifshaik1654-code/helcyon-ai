@@ -92,3 +92,4 @@ export const RecentTransactionsWidget: React.FC<RecentTransactionsWidgetProps> =
     </Card>
   );
 };
+

@@ -48,3 +48,4 @@ export const AIInsightBanner: React.FC<AIInsightBannerProps> = ({
     </div>
   );
 };
+

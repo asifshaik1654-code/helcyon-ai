@@ -205,3 +205,4 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({
     </div>
   );
 };
+

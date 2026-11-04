@@ -351,3 +351,4 @@ export const mockMonthlyTrends = [
   { month: 'Oct 2026', income: 94000, expenses: 41200, savings: 52800 },
   { month: 'Nov 2026', income: 103500, expenses: 39177, savings: 64323 },
 ];
+

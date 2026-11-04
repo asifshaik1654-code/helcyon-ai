@@ -9,12 +9,13 @@ import {
   AlertTriangle,
   Info,
   LogOut,
-  User,
-  ExternalLink
+  User
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { InAppNotification } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   pageTitle: string;
@@ -43,8 +44,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleSignOut = async () => {
+    setShowUserMenu(false);
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <header className="h-16 bg-[#0A0E17]/90 backdrop-blur-md border-b border-[#1E293B] sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
@@ -193,21 +202,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="text-[11px] text-slate-400 truncate">{userEmail}</div>
               </div>
               <div className="py-1">
-                <a
-                  href="#/settings"
-                  className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                  onClick={() => setShowUserMenu(false)}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Profile & Preferences</span>
-                </a>
-              </div>
-              <div className="pt-1 border-t border-slate-800">
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
-                    window.location.href = '#/login';
+                    navigate('/settings');
                   }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-left"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Profile & Preferences</span>
+                </button>
+              </div>
+              <div className="pt-1 border-t border-slate-800">
+                <button
+                  onClick={handleSignOut}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors text-left"
                 >
                   <LogOut className="w-3.5 h-3.5" />

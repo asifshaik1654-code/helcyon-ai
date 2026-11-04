@@ -3,35 +3,49 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useAuth } from '../context/AuthContext';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Please provide both your email and password.');
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+
+    const result = await signIn(email, password);
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+    } else {
       navigate('/dashboard');
-    }, 600);
+    }
   };
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
     setIsLoading(true);
+    setError(null);
     setEmail('asif.shaik@helcyon.ai');
     setPassword('••••••••••••');
-    setTimeout(() => {
-      setIsLoading(false);
+
+    const result = await signIn('asif.shaik@helcyon.ai', 'demo123456');
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+    } else {
       navigate('/dashboard');
-    }, 400);
+    }
   };
 
   return (
@@ -57,7 +71,7 @@ export const LoginPage: React.FC = () => {
               <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-emerald-300">Evaluating or Demonstrating?</div>
-                <div className="text-[11px] text-slate-400">Jump right into sample financial data</div>
+                <div className="text-[11px] text-slate-400">One-click sign in with synthetic data</div>
               </div>
             </div>
             <Button variant="primary" size="sm" onClick={handleDemoLogin} isLoading={isLoading}>

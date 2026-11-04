@@ -69,3 +69,4 @@ export function calculatePercentage(part: number, total: number): number {
 export function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+

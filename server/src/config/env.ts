@@ -11,3 +11,4 @@ export const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-service-role-key',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || 'mock-gemini-key',
 };
+

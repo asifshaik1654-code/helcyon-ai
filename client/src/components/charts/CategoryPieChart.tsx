@@ -82,3 +82,4 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
     </div>
   );
 };
+

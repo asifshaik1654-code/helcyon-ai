@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { ENV } from './config/env.js';
 import { sendSuccess, sendError } from './utils/response.js';
+import authRoutes from './routes/authRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 
 export const app = express();
 
@@ -21,6 +23,7 @@ if (ENV.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
+// System Health Route
 app.get('/api/health', (_req: Request, res: Response) => {
   return sendSuccess(res, {
     status: 'healthy',
@@ -31,6 +34,11 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Mounted Application Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+
+// Centralized error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[Unhandled Server Error]:', err);
   return sendError(
