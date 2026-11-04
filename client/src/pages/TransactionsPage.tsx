@@ -3,18 +3,6 @@
  *
  * The main transaction ledger page.  It is now fully connected to the live
  * backend API via the `useTransactions` hook — no mock data is used here.
- *
- * HOW IT WORKS (simple explanation)
- * -----------------------------------
- * 1. `useTransactions` talks to GET /api/transactions and keeps the state
- *    in sync.  When we change a filter (search, type, category, page) it
- *    re-fetches automatically.
- * 2. Add / Edit uses the form modal and calls addTransaction / editTransaction.
- * 3. Delete shows a confirmation dialog and calls removeTransaction.
- * 4. CSV import uses the import modal and calls importBatch after the user
- *    confirms the preview.
- * 5. While data is loading we show skeleton rows so the layout doesn't jump.
- * 6. If the API is down we show an error banner with a retry button.
  */
 
 import React, { useState } from 'react';
@@ -137,6 +125,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   const currentPage = pagination?.page ?? 1;
   const totalPages = pagination?.totalPages ?? 1;
   const totalCount = pagination?.total ?? 0;
+  const limit = pagination?.limit ?? 15;
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -286,7 +275,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
 
         <CardContent className="p-0">
           {isLoading ? (
-            /* ── Loading skeleton rows ── */
             <div className="divide-y divide-slate-800/60">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4 px-6 py-3.5">
@@ -299,7 +287,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
               ))}
             </div>
           ) : transactions.length === 0 ? (
-            /* ── Empty state ── */
             <div className="py-10">
               <EmptyState
                 icon={Receipt}
@@ -314,7 +301,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
               />
             </div>
           ) : (
-            /* ── Data table ── */
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#0A0E17]/60 text-[11px] text-slate-400 border-b border-slate-800">
@@ -356,9 +342,8 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                         </td>
                         <td className="p-3.5 text-slate-300 whitespace-nowrap">{tx.paymentMethod}</td>
                         <td
-                          className={`p-3.5 text-right font-mono font-bold whitespace-nowrap tabular-nums ${
-                            isIncome ? 'text-emerald-400' : 'text-slate-100'
-                          }`}
+                          className={`p-3.5 text-right font-mono font-bold whitespace-nowrap tabular-nums ${isIncome ? 'text-emerald-400' : 'text-slate-100'
+                            }`}
                         >
                           {isIncome ? '+' : '−'}{formatCurrency(tx.amount, currency)}
                         </td>
@@ -393,8 +378,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
         {!isLoading && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-800 px-6 py-3">
             <span className="text-xs text-slate-400">
-              Showing {((currentPage - 1) * (pagination?.limit ?? 15)) + 1}–
-              {Math.min(currentPage * (pagination?.limit ?? 15), totalCount)} of {totalCount}
+              Showing {((currentPage - 1) * limit) + 1}–{Math.min(currentPage * limit, totalCount)} of {totalCount}
             </span>
             <div className="flex items-center gap-2">
               <button

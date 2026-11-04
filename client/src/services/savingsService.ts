@@ -5,46 +5,7 @@
  */
 
 import type { SavingsGoal, SavingsContribution } from '../types';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api';
-const DEMO_TOKEN = 'demo-session-token';
-
-function getAuthHeader(): string {
-  const raw = localStorage.getItem('sb-auth-token');
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      const token = parsed?.access_token ?? parsed?.currentSession?.access_token;
-      if (token) return `Bearer ${token}`;
-    } catch {
-      // ignore
-    }
-  }
-  const stored = localStorage.getItem('helcyon_token');
-  if (stored) return `Bearer ${stored}`;
-  return `Bearer ${DEMO_TOKEN}`;
-}
-
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE}${path}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: getAuthHeader(),
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const json = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message = (json as { message?: string }).message ?? `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  return (json as { data: T }).data;
-}
+import { apiFetch } from './apiClient';
 
 export interface SavingsGoalDetail extends SavingsGoal {
   progressPercentage: number;

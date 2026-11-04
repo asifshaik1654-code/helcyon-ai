@@ -26,66 +26,7 @@ import type {
   TransactionSummary,
   ImportResult,
 } from '../types/index';
-
-// ── constants ──────────────────────────────────────────────────────────────────
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api';
-
-// Demo token that the backend accepts when Supabase is not configured
-const DEMO_TOKEN = 'demo-session-token';
-
-// ── helpers ────────────────────────────────────────────────────────────────────
-
-/** Returns the Authorization header value to send with every request. */
-function getAuthHeader(): string {
-  // Try to read a real Supabase session from localStorage
-  const raw = localStorage.getItem('sb-auth-token');
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      const token: string | undefined =
-        parsed?.access_token ?? parsed?.currentSession?.access_token;
-      if (token) return `Bearer ${token}`;
-    } catch {
-      // fall through to demo token
-    }
-  }
-
-  // Also check a simple key that we store when in demo mode
-  const stored = localStorage.getItem('helcyon_token');
-  if (stored) return `Bearer ${stored}`;
-
-  return `Bearer ${DEMO_TOKEN}`;
-}
-
-/** Generic fetch wrapper that adds auth headers and throws on non-2xx. */
-async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE}${path}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: getAuthHeader(),
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const json = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message: string =
-      (json as { message?: string }).message ??
-      `HTTP ${response.status}: ${response.statusText}`;
-    throw new Error(message);
-  }
-
-  // Our backend wraps every response as { success: true, data: ... }
-  return (json as { data: T }).data;
-}
+import { apiFetch } from './apiClient';
 
 /** Serialises filter params into a URLSearchParams string. */
 function buildQuery(params: Record<string, unknown>): string {

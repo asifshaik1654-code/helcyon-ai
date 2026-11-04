@@ -9,3 +9,4 @@ router.use(requireAuth);
 router.get('/summary', getDashboardSummary);
 
 export default router;
+

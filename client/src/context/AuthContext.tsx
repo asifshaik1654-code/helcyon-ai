@@ -39,6 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check active live session from Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.access_token) {
+        localStorage.setItem('helcyon_token', session.access_token);
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id);
@@ -50,6 +53,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.access_token) {
+        localStorage.setItem('helcyon_token', session.access_token);
+      } else {
+        localStorage.removeItem('helcyon_token');
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id);
@@ -112,6 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setSession(data.session);
+    if (data.session?.access_token) {
+      localStorage.setItem('helcyon_token', data.session.access_token);
+    }
     setUser(data.user);
     if (data.user) {
       fetchUserProfile(data.user.id);
@@ -128,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setUser(demoUser);
       setSession({ access_token: 'demo-session-token' });
+      localStorage.setItem('helcyon_token', 'demo-session-token');
       setProfile({
         id: demoUser.id,
         email,
@@ -155,6 +167,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setSession(data.session);
+    if (data.session?.access_token) {
+      localStorage.setItem('helcyon_token', data.session.access_token);
+    }
     setUser(data.user);
     return {};
   };
@@ -163,6 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isSupabaseFrontendConfigured) {
       await supabase.auth.signOut();
     }
+    localStorage.removeItem('helcyon_token');
     setUser(null);
     setSession(null);
     setProfile(null);

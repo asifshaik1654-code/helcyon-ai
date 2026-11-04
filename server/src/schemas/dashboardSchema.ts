@@ -10,3 +10,4 @@ export const dashboardQuerySchema = z.object({
 });
 
 export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
+

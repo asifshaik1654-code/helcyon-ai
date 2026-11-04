@@ -28,3 +28,4 @@ export const contributeGoalSchema = z.object({
 export type CreateGoalInput = z.infer<typeof createGoalSchema>;
 export type UpdateGoalInput = z.infer<typeof updateGoalSchema>;
 export type ContributeGoalInput = z.infer<typeof contributeGoalSchema>;
+

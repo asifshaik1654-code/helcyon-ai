@@ -241,3 +241,4 @@ export async function getDashboardSummary(req: Request, res: Response) {
     return sendError(res, 'Failed to compute dashboard analytics', 500, 'SERVER_ERROR');
   }
 }
+

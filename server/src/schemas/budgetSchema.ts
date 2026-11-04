@@ -26,3 +26,4 @@ export const queryBudgetSchema = z.object({
 export type CreateBudgetInput = z.infer<typeof createBudgetSchema>;
 export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>;
 export type QueryBudgetInput = z.infer<typeof queryBudgetSchema>;
+

@@ -408,3 +408,4 @@ export async function addGoalContribution(req: Request, res: Response) {
     return sendError(res, 'Failed to record contribution', 500, 'SERVER_ERROR');
   }
 }
+

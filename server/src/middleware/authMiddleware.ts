@@ -12,6 +12,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     const token = authHeader.split(' ')[1];
+    req.token = token;
 
     // Demo Mode Token Support (For offline evaluation and tests)
     if (token === 'demo-session-token' || token === 'demo-token') {

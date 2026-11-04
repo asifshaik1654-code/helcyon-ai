@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabase, isSupabaseLive } from '../config/supabase.js';
+import { supabase, getSupabaseClient, isSupabaseLive } from '../config/supabase.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 import {
   createTransactionSchema,
@@ -202,7 +202,8 @@ export async function getTransactions(req: Request, res: Response) {
 
     // Supabase Live Query Path
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      let query = supabase
+      const db = getSupabaseClient(req.token);
+      let query = db
         .from('transactions')
         .select('*', { count: 'exact' })
         .eq('user_id', userId);
@@ -313,7 +314,8 @@ export async function getTransactionById(req: Request, res: Response) {
     const { id } = req.params;
 
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      const { data, error } = await supabase
+      const db = getSupabaseClient(req.token);
+      const { data, error } = await db
         .from('transactions')
         .select('*')
         .eq('id', id)
@@ -349,7 +351,8 @@ export async function createTransaction(req: Request, res: Response) {
     const data = parseResult.data;
 
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      const { data: inserted, error } = await supabase
+      const db = getSupabaseClient(req.token);
+      const { data: inserted, error } = await db
         .from('transactions')
         .insert({
           user_id: userId,
@@ -466,7 +469,8 @@ export async function deleteTransaction(req: Request, res: Response) {
     const { id } = req.params;
 
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      const { error } = await supabase
+      const db = getSupabaseClient(req.token);
+      const { error } = await db
         .from('transactions')
         .delete()
         .eq('id', id)
@@ -508,7 +512,8 @@ export async function importTransactions(req: Request, res: Response) {
 
     // Fetch existing records for duplicate detection
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      const { data } = await supabase
+      const db = getSupabaseClient(req.token);
+      const { data } = await db
         .from('transactions')
         .select('title, amount, transaction_date')
         .eq('user_id', userId);
@@ -555,7 +560,8 @@ export async function importTransactions(req: Request, res: Response) {
         is_recurring: t.isRecurring,
       }));
 
-      const { data, error } = await supabase.from('transactions').insert(rows).select();
+      const db = getSupabaseClient(req.token);
+      const { data, error } = await db.from('transactions').insert(rows).select();
 
       if (error) {
         return sendError(res, error.message, 400, 'IMPORT_FAILED');
@@ -623,7 +629,8 @@ export async function getTransactionSummary(req: Request, res: Response) {
     let list: StoredTransaction[] = [];
 
     if (isSupabaseLive && userId !== '00000000-0000-0000-0000-000000000001') {
-      const { data, error } = await supabase
+      const db = getSupabaseClient(req.token);
+      const { data, error } = await db
         .from('transactions')
         .select('*')
         .eq('user_id', userId);

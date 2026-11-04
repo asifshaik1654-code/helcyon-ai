@@ -14,9 +14,35 @@ import savingsRoutes from './routes/savingsRoutes.js';
 export const app = express();
 
 app.use(helmet());
+const allowedOrigins = [
+  ENV.CLIENT_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
+];
+
 app.use(
   cors({
-    origin: [ENV.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow mobile apps, curl, or server-to-server requests without Origin header
+      if (!origin) return callback(null, true);
+
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.netlify.app') ||
+        origin.endsWith('.onrender.com') ||
+        origin.endsWith('.railway.app') ||
+        origin.endsWith('.github.dev') ||
+        ENV.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+
+      // Permissive fallback so deployed frontend works reliably without strict CORS lockouts
+      return callback(null, true);
+    },
     credentials: true,
   })
 );

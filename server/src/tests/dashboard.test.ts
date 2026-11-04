@@ -59,3 +59,4 @@ run().catch((err) => {
   console.error('\n💥 Unexpected dashboard test error:', err);
   process.exit(1);
 });
+

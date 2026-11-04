@@ -44,3 +44,4 @@ export function useDashboard(initialMonth?: string) {
     refresh: fetchSummary,
   };
 }
+

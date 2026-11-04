@@ -157,3 +157,4 @@ run().catch((err) => {
   console.error('\n💥 Unexpected budgets/savings test error:', err);
   process.exit(1);
 });
+
