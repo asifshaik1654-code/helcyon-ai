@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Card, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { Bot, Send, Sparkles, User, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react';
-import { mockTransactions } from '../data/mockData';
+import { Bot, Send, Sparkles, User, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
+import { sendChatMessage } from '../services/aiService';
+import { useDashboard } from '../hooks/useDashboard';
 
 interface Message {
   id: string;
@@ -24,23 +24,36 @@ const suggestedPrompts = [
 ];
 
 export const AssistantPage: React.FC = () => {
+  const { data: dashboardData } = useDashboard();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
       sender: 'assistant',
       content:
-        'Hello Shaik Asif! I am your Helcyon AI financial intelligence companion, powered by Google Gemini. I have analyzed your November transactions and budgets. Ask me anything about your cash flow, savings milestones, or upcoming bills.',
-      timestamp: '10:00 AM',
-      factsUsed: ['November Inflow: ₹1,03,500', 'November Outflow: ₹39,177', 'Disposable Surplus: ₹64,323'],
+        'Hello! I am your Helcyon AI financial intelligence companion, powered by Google Gemini. I analyze your verified transactions, budgets, and savings goals in real-time. Ask me anything about your cash flow, affordability, or forecasts.',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      factsUsed: [
+        `Income: ${formatCurrency(dashboardData?.totalIncome ?? 103500)}`,
+        `Expenses: ${formatCurrency(dashboardData?.totalExpenses ?? 39177)}`,
+        `Surplus: ${formatCurrency(dashboardData?.availableBalance ?? 64323)}`,
+      ],
     },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSend = (textToSend?: string) => {
-    const text = textToSend || inputValue;
-    if (!text.trim()) return;
+  // Maintain conversation history for Gemini multi-turn format
+  const [conversationHistory, setConversationHistory] = useState<
+    Array<{ role: 'user' | 'model'; parts: string }>
+  >([]);
 
+  const handleSend = async (textToSend?: string) => {
+    const text = (textToSend || inputValue).trim();
+    if (!text || isTyping) return;
+
+    setErrorMessage(null);
     const userMsg: Message = {
       id: 'm_' + Date.now(),
       sender: 'user',
@@ -52,45 +65,53 @@ export const AssistantPage: React.FC = () => {
     if (!textToSend) setInputValue('');
     setIsTyping(true);
 
-    // Contextual intelligent responses based on deterministic math
-    setTimeout(() => {
-      let replyContent = '';
-      let facts: string[] = [];
+    try {
+      // Call backend AI endpoint
+      const response = await sendChatMessage(text, conversationHistory);
 
-      const lower = text.toLowerCase();
-      if (lower.includes('spend') || lower.includes('expense') || lower.includes('outflow')) {
-        replyContent =
-          'In November 2026, you recorded a total expenditure of ₹39,177 across 9 expense transactions. Your largest single outflow was Apartment Rent at ₹22,000 (56.2% of total expenses), followed by Groceries & Staples at ₹4,250 (10.8%).';
-        facts = ['Total Outflow: ₹39,177', 'Rent: ₹22,000', 'Groceries: ₹4,250'];
-      } else if (lower.includes('category') || lower.includes('highest')) {
-        replyContent =
-          'Your highest spending category is Housing at ₹22,000, followed by Food & Dining (including Groceries) at ₹6,700, and Utilities at ₹4,049. You are well within your allocated monthly limits across all major categories.';
-        facts = ['Top Category: Housing (₹22,000)', 'Second: Food & Dining (₹6,700)'];
-      } else if (lower.includes('phone') || lower.includes('afford')) {
-        replyContent =
-          'Yes, mathematically you can comfortably afford a ₹15,000 phone this month. You currently have a net cash surplus of ₹64,323 after all cleared expenses. Purchasing this phone would consume approximately 23.3% of your remaining disposable cash, leaving ₹49,323 for ongoing savings and investments.';
-        facts = ['Current Cash Surplus: ₹64,323', 'Cost: ₹15,000', 'Post-purchase Surplus: ₹49,323'];
-      } else if (lower.includes('budget') || lower.includes('dining')) {
-        replyContent =
-          'You set a Food & Dining monthly budget of ₹8,000. You have spent ₹2,450 to date, leaving ₹5,550 (69.4% cushion) remaining with 17 days to go in the month. You are pacing at a safe daily burn rate of ~₹144.';
-        facts = ['Budget: ₹8,000', 'Spent: ₹2,450', 'Remaining: ₹5,550'];
-      } else {
-        replyContent =
-          `Based on your verified records, your income this month stands at ₹1,03,500 and your expenses are ₹39,177. You have maintained a healthy savings rate of 62.1%. Your savings goals (Emergency Fund, MacBook Pro, Goa Trip) are currently 53.8% funded overall.`;
-        facts = ['Income: ₹1,03,500', 'Expenses: ₹39,177', 'Savings Rate: 62.1%'];
-      }
-
-      const botMsg: Message = {
+      const assistantMsg: Message = {
         id: 'mb_' + Date.now(),
         sender: 'assistant',
-        content: replyContent,
+        content: response.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        factsUsed: facts,
+        factsUsed: response.factsUsed,
       };
 
-      setMessages((prev) => [...prev, botMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      // Update multi-turn history
+      setConversationHistory((prev) => [
+        ...prev,
+        { role: 'user', parts: text },
+        { role: 'model', parts: response.reply },
+      ]);
+    } catch (err: unknown) {
+      console.error('[AssistantPage handleSend error]:', err);
+      const fallbackError =
+        err instanceof Error ? err.message : 'Unable to reach the financial intelligence engine.';
+      setErrorMessage(fallbackError);
+
+      // Local fallback reply
+      const botFallbackMsg: Message = {
+        id: 'mb_err_' + Date.now(),
+        sender: 'assistant',
+        content: `I encountered an issue connecting to the live Gemini assistant. However, based on your current snapshot, your income is ${formatCurrency(
+          dashboardData?.totalIncome ?? 103500
+        )} and expenses are ${formatCurrency(
+          dashboardData?.totalExpenses ?? 39177
+        )}, leaving a disposable surplus of ${formatCurrency(
+          dashboardData?.availableBalance ?? 64323
+        )}.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        factsUsed: [
+          `Surplus: ${formatCurrency(dashboardData?.availableBalance ?? 64323)}`,
+          'Source: Local Snapshot',
+        ],
+      };
+      setMessages((prev) => [...prev, botFallbackMsg]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   return (
@@ -154,7 +175,7 @@ export const AssistantPage: React.FC = () => {
                         : 'bg-emerald-600 text-slate-950 font-medium rounded-tr-none'
                     }`}
                   >
-                    <p>{msg.content}</p>
+                    <p className="whitespace-pre-line">{msg.content}</p>
 
                     {/* Verified Facts Tag Box */}
                     {isAssistant && msg.factsUsed && msg.factsUsed.length > 0 && (
@@ -199,6 +220,12 @@ export const AssistantPage: React.FC = () => {
                 <span>Gemini is analyzing your verified financial context...</span>
               </div>
             )}
+
+            {errorMessage && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                {errorMessage}
+              </div>
+            )}
           </div>
 
           {/* Suggested Quick Prompts */}
@@ -209,8 +236,10 @@ export const AssistantPage: React.FC = () => {
             {suggestedPrompts.map((prompt, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => handleSend(prompt)}
-                className="text-[11px] px-2.5 py-1 rounded-full bg-[#131B2E] border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white shrink-0 transition-colors"
+                disabled={isTyping}
+                className="text-[11px] px-2.5 py-1 rounded-full bg-[#131B2E] border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white shrink-0 transition-colors disabled:opacity-50"
               >
                 {prompt}
               </button>
@@ -231,9 +260,10 @@ export const AssistantPage: React.FC = () => {
                 placeholder="Ask Helcyon AI about your financial data..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 bg-[#131B2E] border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/80"
+                disabled={isTyping}
+                className="flex-1 bg-[#131B2E] border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/80 disabled:opacity-50"
               />
-              <Button type="submit" variant="primary" size="md">
+              <Button type="submit" variant="primary" size="md" disabled={isTyping || !inputValue.trim()}>
                 <Send className="w-4 h-4" />
               </Button>
             </form>
@@ -259,19 +289,33 @@ export const AssistantPage: React.FC = () => {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between text-slate-400">
                 <span>Month:</span>
-                <span className="font-medium text-slate-200">November 2026</span>
+                <span className="font-medium text-slate-200">
+                  {dashboardData?.selectedMonth || 'November 2026'}
+                </span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Cash Inflow:</span>
-                <span className="font-mono text-emerald-400">₹1,03,500</span>
+                <span className="font-mono text-emerald-400">
+                  {formatCurrency(dashboardData?.totalIncome ?? 103500)}
+                </span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Cash Outflow:</span>
-                <span className="font-mono text-rose-400">₹39,177</span>
+                <span className="font-mono text-rose-400">
+                  {formatCurrency(dashboardData?.totalExpenses ?? 39177)}
+                </span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Net Cushion:</span>
-                <span className="font-mono text-cyan-400 font-semibold">₹64,323</span>
+                <span className="font-mono text-cyan-400 font-semibold">
+                  {formatCurrency(dashboardData?.availableBalance ?? 64323)}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Savings Rate:</span>
+                <span className="font-mono text-slate-200">
+                  {(dashboardData?.savingsRate ?? 62.1).toFixed(1)}%
+                </span>
               </div>
             </div>
           </Card>
@@ -280,4 +324,3 @@ export const AssistantPage: React.FC = () => {
     </div>
   );
 };
-

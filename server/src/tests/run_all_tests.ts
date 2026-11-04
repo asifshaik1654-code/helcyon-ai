@@ -16,6 +16,8 @@ const testFiles = [
   'transactions.test.ts',
   'dashboard.test.ts',
   'budgets_savings.test.ts',
+  'intelligence_ai.test.ts',
+  'notifications.test.ts',
 ];
 
 async function runTest(file: string): Promise<boolean> {

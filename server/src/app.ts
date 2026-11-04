@@ -10,6 +10,10 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import budgetRoutes from './routes/budgetRoutes.js';
 import savingsRoutes from './routes/savingsRoutes.js';
+import recurringRoutes from './routes/recurringRoutes.js';
+import anomalyRoutes from './routes/anomalyRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 export const app = express();
 
@@ -71,6 +75,10 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/savings-goals', savingsRoutes);
+app.use('/api/recurring', recurringRoutes);
+app.use('/api/insights/anomalies', anomalyRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Centralized error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

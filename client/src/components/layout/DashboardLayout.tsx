@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { mockProfile, mockNotifications } from '../../data/mockData';
 import { TransactionFormModal } from '../transactions/TransactionFormModal';
 import { CSVImportModal } from '../transactions/CSVImportModal';
+import { fetchNotifications, markNotificationAsRead } from '../../services/notificationService';
+import { importTransactions, createTransaction } from '../../services/transactionService';
+import type { InAppNotification, Transaction } from '../../types';
 
 interface DashboardLayoutProps {
   isDemoMode: boolean;
@@ -22,7 +25,49 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [isCSVImportOpen, setIsCSVImportOpen] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<InAppNotification[]>(mockNotifications);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadNotifs() {
+      try {
+        const res = await fetchNotifications();
+        if (isMounted && res.notifications) {
+          const mapped: InAppNotification[] = res.notifications.map((n) => ({
+            id: n.id,
+            userId: '00000000-0000-0000-0000-000000000001',
+            title: n.title,
+            message: n.message,
+            notificationType: n.type.startsWith('budget')
+              ? 'budget'
+              : n.type.startsWith('bill')
+              ? 'recurring'
+              : 'milestone',
+            isRead: n.isRead,
+            createdAt: n.createdAt,
+          }));
+          setNotifications(mapped);
+        }
+      } catch (err) {
+        // Fall back gracefully to mock notifications
+        console.debug('[DashboardLayout] Live notifications offline, using fallback');
+      }
+    }
+    loadNotifs();
+    const handleSaveQuickTransaction = async (data: Partial<Transaction>) => {
+    try {
+      await createTransaction(data as any);
+    } catch (err) {
+      console.error('[DashboardLayout] Failed to save transaction:', err);
+    } finally {
+      setIsAddTransactionOpen(false);
+    }
+  };
+
+  return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const location = useLocation();
 
@@ -56,10 +101,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   };
 
-  const handleMarkNotificationRead = (id: string) => {
+  const handleMarkNotificationRead = async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
+    try {
+      await markNotificationAsRead(id);
+    } catch {
+      // Ignored if offline
+    }
+  };
+
+  const handleSaveQuickTransaction = async (data: Partial<Transaction>) => {
+    try {
+      await createTransaction(data as any);
+    } catch (err) {
+      console.error('[DashboardLayout] Failed to save transaction:', err);
+    } finally {
+      setIsAddTransactionOpen(false);
+    }
   };
 
   return (
@@ -116,13 +176,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       <TransactionFormModal
         isOpen={isAddTransactionOpen}
         onClose={() => setIsAddTransactionOpen(false)}
-        onSave={() => setIsAddTransactionOpen(false)}
+        onSave={handleSaveQuickTransaction}
       />
 
       <CSVImportModal
         isOpen={isCSVImportOpen}
         onClose={() => setIsCSVImportOpen(false)}
-        onImportSuccess={() => setIsCSVImportOpen(false)}
+        onImportSuccess={async (rows) => {
+          try {
+            await importTransactions(rows);
+          } catch (err) {
+            console.error('[DashboardLayout CSV import error]:', err);
+          } finally {
+            setIsCSVImportOpen(false);
+          }
+        }}
       />
     </div>
   );
