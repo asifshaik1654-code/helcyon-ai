@@ -9,7 +9,7 @@ import {
 } from '../schemas/transactionSchema.js';
 
 // Local In-Memory Fallback Store for Local Development & Demo Presentation
-interface StoredTransaction {
+export interface StoredTransaction {
   id: string;
   user_id: string;
   title: string;
@@ -22,6 +22,10 @@ interface StoredTransaction {
   is_recurring: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export function getTransactionsByUser(userId: string): StoredTransaction[] {
+  return mockTransactionsStore.filter((t) => t.user_id === userId);
 }
 
 let mockTransactionsStore: StoredTransaction[] = [

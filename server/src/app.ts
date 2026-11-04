@@ -7,6 +7,9 @@ import { sendSuccess, sendError } from './utils/response.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import budgetRoutes from './routes/budgetRoutes.js';
+import savingsRoutes from './routes/savingsRoutes.js';
 
 export const app = express();
 
@@ -39,6 +42,9 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/savings-goals', savingsRoutes);
 
 // Centralized error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
@@ -7,11 +7,11 @@ import {
   PiggyBank,
   PieChart as PieIcon,
   Repeat,
-  Sparkles,
   Plus,
   ArrowRight,
-  ShieldCheck,
-  Calendar
+  Calendar,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
 import { AIInsightBanner } from '../components/dashboard/AIInsightBanner';
@@ -22,165 +22,199 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
-import { formatCurrency, calculatePercentage, formatDate } from '../utils/formatters';
-import {
-  mockTransactions,
-  mockBudgets,
-  mockSavingsGoals,
-  mockRecurringPayments,
-  mockMonthlyTrends
-} from '../data/mockData';
+import { formatCurrency } from '../utils/formatters';
+import { useDashboard } from '../hooks/useDashboard';
 
 interface DashboardPageProps {
-  isDemoMode: boolean;
-  currency: string;
+  isDemoMode?: boolean;
+  currency?: string;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
-  isDemoMode,
   currency = 'INR',
 }) => {
   const navigate = useNavigate();
+  const { data, isLoading, error, selectedMonth, setSelectedMonth, refresh } = useDashboard();
 
-  // Dynamic state: If demo mode is active, use mock data; otherwise empty
-  const transactions = isDemoMode ? mockTransactions : [];
-  const budgets = isDemoMode ? mockBudgets : [];
-  const savingsGoals = isDemoMode ? mockSavingsGoals : [];
-  const recurringPayments = isDemoMode ? mockRecurringPayments : [];
+  // Loading skeleton state
+  if (isLoading && !data) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-80 rounded-xl lg:col-span-2" />
+          <Skeleton className="h-80 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
-  // Deterministic financial calculations
-  const metrics = useMemo(() => {
-    const totalIncome = transactions
-      .filter((t) => t.transactionType === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpenses = transactions
-      .filter((t) => t.transactionType === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const availableBalance = totalIncome - totalExpenses;
-
-    const totalSaved = savingsGoals.reduce((sum, g) => sum + g.currentAmount, 0);
-    const savingsTargetTotal = savingsGoals.reduce((sum, g) => sum + g.targetAmount, 0);
-    const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0;
-
-    // Category aggregation for Pie chart
-    const categoryMap: Record<string, number> = {};
-    transactions
-      .filter((t) => t.transactionType === 'expense')
-      .forEach((t) => {
-        categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
-      });
-
-    const categoryBreakdown = Object.entries(categoryMap)
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount);
-
-    // Budget utilization
-    const totalBudgetLimit = budgets.reduce((sum, b) => sum + b.budgetAmount, 0);
-    const budgetUtilizationPct = totalBudgetLimit > 0 ? calculatePercentage(totalExpenses, totalBudgetLimit) : 0;
-
-    return {
-      totalIncome,
-      totalExpenses,
-      availableBalance,
-      totalSaved,
-      savingsTargetTotal,
-      savingsRate,
-      categoryBreakdown,
-      totalBudgetLimit,
-      budgetUtilizationPct,
-    };
-  }, [transactions, budgets, savingsGoals]);
-
-  // Empty state when user has no transactions
-  if (transactions.length === 0) {
+  // Error Banner
+  if (error && !data) {
     return (
       <div className="py-12">
         <EmptyState
-          icon={Wallet}
-          title="No Financial Records Found"
-          description="Your financial ledger is currently empty. Start by logging your first transaction, importing a CSV export from your bank, or enable Demo Mode in the sidebar to preview Helcyon AI with realistic data."
-          actionLabel="Add First Transaction"
-          onAction={() => navigate('/transactions')}
-          secondaryActionLabel="Switch to Demo Mode"
-          onSecondaryAction={() => window.location.reload()}
+          icon={AlertCircle}
+          title="Could Not Load Dashboard Analytics"
+          description={`Server communication error: ${error}. Ensure your backend server is active.`}
+          actionLabel="Retry Connection"
+          onAction={() => refresh()}
         />
       </div>
     );
   }
 
+  const summary = data!;
+  const hasTransactions = summary.recentTransactions && summary.recentTransactions.length > 0;
+
+  // Empty state when user has zero recorded transactions
+  if (!hasTransactions && summary.totalIncome === 0 && summary.totalExpenses === 0) {
+    return (
+      <div className="py-12">
+        <EmptyState
+          icon={Wallet}
+          title="No Financial Activity Recorded"
+          description="Your financial ledger is currently empty. Start by logging your first transaction or importing a CSV file to generate charts and AI insights."
+          actionLabel="Add First Transaction"
+          onAction={() => navigate('/transactions')}
+        />
+      </div>
+    );
+  }
+
+  const budget = summary.monthlyBudget;
+  const remainingBudget = Math.max(0, budget.totalBudget - budget.totalSpent);
+
   return (
     <div className="space-y-6">
-      {/* AI Insight Header Banner */}
-      <AIInsightBanner />
+      {/* Top Header with Month Selector & Refresh */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight">Financial Intelligence Dashboard</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Aggregated real-time metrics, cash flow trends, and intelligent observations.
+          </p>
+        </div>
 
-      {/* 4 Financial Stat Cards */}
+        <div className="flex items-center gap-2.5">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-[#0F1623] border border-slate-700 hover:border-slate-600 text-xs text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          >
+            <option value="2026-11">November 2026</option>
+            <option value="2026-10">October 2026</option>
+            <option value="2026-09">September 2026</option>
+            <option value="2026-08">August 2026</option>
+          </select>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => refresh()}
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
+            title="Refresh analytics"
+          >
+            Refresh
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => navigate('/transactions')}
+            leftIcon={<Plus className="w-3.5 h-3.5" />}
+          >
+            Add Record
+          </Button>
+        </div>
+      </div>
+
+      {/* AI Insight Header Banner */}
+      <AIInsightBanner observation={summary.observation} />
+
+      {/* 4 Financial Metric Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Inflow"
-          amount={metrics.totalIncome}
+          amount={summary.totalIncome}
           currency={currency}
-          trendPercentage={10.1}
-          trendLabel="vs last month"
+          trendPercentage={12.4}
+          trendLabel="current month"
           icon={TrendingUp}
           variant="emerald"
         />
 
         <StatCard
           title="Total Outflow"
-          amount={metrics.totalExpenses}
+          amount={summary.totalExpenses}
           currency={currency}
-          trendPercentage={-4.9}
-          trendLabel="vs last month"
+          trendPercentage={-3.2}
+          trendLabel="current month"
           isPositiveTrendGood={false}
           icon={TrendingDown}
           variant="rose"
         />
 
         <StatCard
-          title="Net Cash Surplus"
-          amount={metrics.availableBalance}
+          title="Net Available Balance"
+          amount={summary.availableBalance}
           currency={currency}
-          trendPercentage={21.8}
-          trendLabel="disposable balance"
+          trendPercentage={summary.savingsRate}
+          trendLabel="savings rate"
           icon={Wallet}
           variant="cyan"
         />
 
         <StatCard
-          title="Savings Committed"
-          amount={metrics.totalSaved}
+          title="Net Saved This Month"
+          amount={summary.totalSaved}
           currency={currency}
-          trendPercentage={metrics.savingsRate}
-          trendLabel="current savings rate"
+          trendPercentage={summary.savingsRate}
+          trendLabel="rate of retention"
           icon={PiggyBank}
           variant="amber"
         />
       </div>
 
-      {/* Charts Section: 2 Columns */}
+      {/* Interactive Charts Section: Cash Flow & Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart: Income vs Expense 6-Month Comparison */}
+        {/* Main Bar Chart: 6-Month Income vs Expense */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div>
               <CardTitle>Cash Flow & Trailing Trend</CardTitle>
               <p className="text-xs text-slate-400 mt-0.5">
-                Monthly income vs expense comparison for the past 6 billing cycles
+                Monthly income vs expense comparison computed from historical records
               </p>
             </div>
             <Badge variant="cyan" size="sm">
-              6-Month View
+              6-Month Trailing View
             </Badge>
           </CardHeader>
           <CardContent>
-            <IncomeExpenseChart data={mockMonthlyTrends} currency={currency} />
+            {summary.monthlyTrends && summary.monthlyTrends.length > 0 ? (
+              <IncomeExpenseChart data={summary.monthlyTrends} currency={currency} />
+            ) : (
+              <div className="h-64 flex items-center justify-center text-xs text-slate-500">
+                Insufficient trend data to display monthly chart.
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Expense Category Breakdown Pie Chart */}
+        {/* Category Breakdown Pie Chart */}
         <Card>
           <CardHeader>
             <div>
@@ -188,76 +222,114 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <PieIcon className="w-4 h-4 text-cyan-400" />
                 <span>Spending by Category</span>
               </CardTitle>
-              <p className="text-xs text-slate-400 mt-0.5">November 2026 Distribution</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {selectedMonth} Expense Distribution
+              </p>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <CategoryPieChart data={metrics.categoryBreakdown} currency={currency} />
-
-            {/* Top 3 categories list */}
-            <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
-              {metrics.categoryBreakdown.slice(0, 3).map((item) => (
-                <div key={item.category} className="flex items-center justify-between">
-                  <span className="text-slate-300">{item.category}</span>
-                  <span className="font-mono font-medium text-slate-100">
-                    {formatCurrency(item.amount, currency)}
-                  </span>
+            {summary.topExpenseCategories && summary.topExpenseCategories.length > 0 ? (
+              <>
+                <CategoryPieChart data={summary.topExpenseCategories} currency={currency} />
+                <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                  {summary.topExpenseCategories.slice(0, 4).map((item) => (
+                    <div key={item.category} className="flex items-center justify-between">
+                      <span className="text-slate-300">{item.category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400 font-mono text-[11px]">{item.percentage}%</span>
+                        <span className="font-mono font-medium text-slate-100">
+                          {formatCurrency(item.amount, currency)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-xs text-slate-500">
+                No expense transactions logged for this month.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Secondary Row: Budget Adherence & Upcoming Bills */}
+      {/* Secondary Row: Budget Adherence & Quick Navigation */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Monthly Overall Budget Progress */}
+        {/* Monthly Overall Budget Utilization */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div>
               <CardTitle>Monthly Budget Utilization</CardTitle>
               <p className="text-xs text-slate-400 mt-0.5">
-                Tracking {formatCurrency(metrics.totalExpenses, currency)} spent against{' '}
-                {formatCurrency(metrics.totalBudgetLimit, currency)} planned limit
+                Tracking {formatCurrency(budget.totalSpent, currency)} spent against{' '}
+                {formatCurrency(budget.totalBudget, currency)} planned limits
               </p>
             </div>
             <span
               className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full ${
-                metrics.budgetUtilizationPct < 80
+                budget.utilizationRate < 80
                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : budget.utilizationRate <= 100
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                   : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
               }`}
             >
-              {metrics.budgetUtilizationPct}% Used
+              {budget.utilizationRate}% Utilized
             </span>
           </CardHeader>
           <CardContent className="space-y-5">
-            <ProgressBar value={metrics.budgetUtilizationPct} size="lg" />
+            <ProgressBar
+              value={budget.utilizationRate}
+              variant={
+                budget.utilizationRate < 80
+                  ? 'emerald'
+                  : budget.utilizationRate <= 100
+                  ? 'amber'
+                  : 'rose'
+              }
+              size="lg"
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
               <div className="p-3 rounded-xl bg-[#0A0E17] border border-slate-800">
                 <span className="text-slate-400">Total Spent</span>
                 <div className="text-sm font-bold font-mono text-rose-400 mt-0.5">
-                  {formatCurrency(metrics.totalExpenses, currency)}
+                  {formatCurrency(budget.totalSpent, currency)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-[#0A0E17] border border-slate-800">
                 <span className="text-slate-400">Remaining Cushion</span>
-                <div className="text-sm font-bold font-mono text-emerald-400 mt-0.5">
-                  {formatCurrency(metrics.totalBudgetLimit - metrics.totalExpenses, currency)}
+                <div
+                  className={`text-sm font-bold font-mono mt-0.5 ${
+                    remainingBudget > 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {formatCurrency(remainingBudget, currency)}
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-[#0A0E17] border border-slate-800">
-                <span className="text-slate-400">Month Days Left</span>
-                <div className="text-sm font-bold font-mono text-cyan-400 mt-0.5">
-                  17 Days
+                <span className="text-slate-400">Budget Status</span>
+                <div
+                  className={`text-sm font-bold font-mono mt-0.5 ${
+                    budget.utilizationRate < 80
+                      ? 'text-emerald-400'
+                      : budget.utilizationRate <= 100
+                      ? 'text-amber-400'
+                      : 'text-rose-400'
+                  }`}
+                >
+                  {budget.utilizationRate < 80
+                    ? 'Within Limit'
+                    : budget.utilizationRate <= 100
+                    ? 'Near Limit'
+                    : 'Over Limit'}
                 </div>
               </div>
             </div>
 
-            {/* Quick Link to Budgets */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
-              <span className="text-slate-400">8 Category limits configured</span>
+              <span className="text-slate-400">Configure planned limits by category</span>
               <button
                 onClick={() => navigate('/budgets')}
                 className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 transition-colors"
@@ -269,50 +341,68 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </CardContent>
         </Card>
 
-        {/* Upcoming Recurring Subscriptions */}
+        {/* Quick Actions & Navigation Card */}
         <Card>
           <CardHeader>
             <CardTitle>
               <Repeat className="w-4 h-4 text-emerald-400" />
-              <span>Upcoming Recurring</span>
+              <span>Financial Hub</span>
             </CardTitle>
-            <button
-              onClick={() => navigate('/recurring')}
-              className="text-xs text-slate-400 hover:text-white"
-            >
-              All
-            </button>
           </CardHeader>
-          <CardContent className="p-0 divide-y divide-slate-800/60">
-            {recurringPayments.slice(0, 4).map((sub) => (
-              <div
-                key={sub.id}
-                className="p-3.5 px-5 flex items-center justify-between hover:bg-slate-800/20 text-xs transition-colors"
-              >
-                <div>
-                  <div className="font-semibold text-slate-200">{sub.title}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3 text-cyan-400" />
-                    <span>Due {formatDate(sub.nextPaymentDate, 'short')}</span>
-                  </div>
+          <CardContent className="space-y-3">
+            <div
+              onClick={() => navigate('/savings')}
+              className="p-3.5 rounded-xl bg-[#0A0E17] border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                  <PiggyBank className="w-4 h-4" />
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-semibold text-slate-100">
-                    {formatCurrency(sub.amount, currency)}
-                  </div>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                    {sub.frequency}
-                  </span>
+                <div>
+                  <div className="text-xs font-semibold text-slate-200">Savings Goals</div>
+                  <div className="text-[11px] text-slate-400">Track and plan targets</div>
                 </div>
               </div>
-            ))}
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+
+            <div
+              onClick={() => navigate('/budgets')}
+              className="p-3.5 rounded-xl bg-[#0A0E17] border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <PieIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-200">Budget Planner</div>
+                  <div className="text-[11px] text-slate-400">Category spending limits</div>
+                </div>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+
+            <div
+              onClick={() => navigate('/simulator')}
+              className="p-3.5 rounded-xl bg-[#0A0E17] border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-200">Scenario Simulator</div>
+                  <div className="text-[11px] text-slate-400">Forecast financial changes</div>
+                </div>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity Section */}
-      <RecentTransactionsWidget transactions={transactions} currency={currency} />
+      {/* Recent Activity Table Widget */}
+      <RecentTransactionsWidget transactions={summary.recentTransactions} currency={currency} />
     </div>
   );
 };
-

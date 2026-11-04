@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx src/tests/auth.test.ts"
+    "test": "tsx src/tests/run_all_tests.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

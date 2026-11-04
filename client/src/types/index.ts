@@ -140,6 +140,7 @@ export interface InAppNotification {
 }
 
 export interface DashboardSummary {
+  selectedMonth?: string;
   totalIncome: number;
   totalExpenses: number;
   availableBalance: number;
@@ -149,6 +150,7 @@ export interface DashboardSummary {
     totalBudget: number;
     totalSpent: number;
     utilizationRate: number;
+    isOverBudget?: boolean;
   };
   recentTransactions: Transaction[];
   topExpenseCategories: {
@@ -158,10 +160,12 @@ export interface DashboardSummary {
   }[];
   monthlyTrends: {
     month: string;
+    rawMonth?: string;
     income: number;
     expenses: number;
     savings: number;
   }[];
+  observation?: string;
 }
 
 export interface SimulationParams {
